@@ -106,7 +106,6 @@ def eval_roll(expr):
         if (expr.isdigit()):
             return int(expr)
 
-    print("!!! Error Expression: ", expr)
     return 0;
 
 def eval_minus(expr):
@@ -125,8 +124,9 @@ def eval_add(expr):
     return result
 
 def cmd_roll(expr):
-    print("%d" % eval_add(expr))
-    return
+    result = eval_add(expr)
+    print(result)
+    return result
 
 #############################################################################
 # make character
@@ -146,9 +146,8 @@ def cmd_character(expr):
 # init: load player data
 #############################################################################
 
-"""
-{
-    "pl"    : true,
+test1 = {
+    "pl"    : True,
     "name"  : "jhd",
 
     "IN"    : 4,
@@ -166,41 +165,94 @@ def cmd_character(expr):
     "ref"   : -1,
     "will"  : -1,
 
-    "attack" : [
-        {
-            "name"   : "keyboard",
+    "attack" : {
+        "keyboard" : {
             "attack" : -1,
             "damage" : "1d4-1"
         },
-        {
-            "name"   : "mouse",
+        "mouse" : {
             "attack" : -1,
             "damage" : "1d4-1"
         }
-    ],
+    },
 
     "acrobatics"    : 3,
-    "arcana"        : 4,
-    ""
+    "arcana"        : 4
 }
-"""
 
-characters = {}
-monsters   = {}
+test2 = {
+    "pl"    : True,
+    "name"  : "boss",
 
-def cmd_init(expr):
+    "IN"    : 4,
+    "HP"    : 8,
+    "AC"    : 11,
+
+    "str"   : 8,
+    "dex"   : 9,
+    "con"   : 10,
+    "int"   : 14,
+    "wis"   : 8,
+    "cha"   : 10,
+
+    "fort"  : 0,
+    "ref"   : -1,
+    "will"  : -1,
+
+    "attack" : {
+        "keyboard" : {
+            "attack" : -1,
+            "damage" : "1d4-1"
+        },
+        "mouse" : {
+            "attack" : -1,
+            "damage" : "1d4-1"
+        }
+    },
+
+    "acrobatics"    : 3,
+    "arcana"        : 4
+}
+
+characters = [ test1, test2 ]
+
+def cmd_init():
     return
 
 #############################################################################
-# dump
+# Attack
 #############################################################################
 
-def cmd_dump(expr):
+def cmd_attack(name, weapon, abonus = "", dbonus = ""):
+    for c in characters:
+        if c["name"] == name:
+            try:
+                print("Roll attack check for %s with %s" % (name, weapon))
+                result1 = cmd_roll("1d20+" + abonus) + c["attack"][weapon]["attack"]
+                print("Roll damage check for %s with %s" % (name, weapon))
+                result2 = cmd_roll(c["attack"][weapon]["damage"] + "+" + dbonus)
+            except:
+                print("!!! Error Character: %s %s" % (name. value))
+            break
+    return
+
+#############################################################################
+# Dump
+#############################################################################
+
+def cmd_dump(name=""):
     print("---------+----------+---------------+-------------------------")
-    print("    mame | in hp ac | fort ref will | str dex con int wis cha")
+    print("    mame | IN HP AC | fort ref will | str dex con int wis cha")
     print("---------+----------+---------------+-------------------------")
-    print("%8s | %2d %2d %2d | %4d %3d %4d | %3d %3d %3d %3d %3d %3d"
-          % ("jhd", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+    for c in characters:
+        try:
+            print("%8s | %2d %2d %2d | %4d %3d %4d | %3d %3d %3d %3d %3d %3d"
+                  % (c["name"], c["IN"], c["HP"], c["AC"],
+                     c["fort"], c["ref"], c["will"],
+                     c["str"], c["dex"], c["con"],
+                     c["int"], c["wis"], c["cha"]))
+        except KeyError:
+            print("!!! Error")
     print("---------+----------+---------------+-------------------------")
     return
 
@@ -217,21 +269,34 @@ commands = {
     #"set"     : cmd_set,
     #"add"     : cmd_add,
     #"check"   : cmd_check,
-    #"attck"   : cmd_attck,
+    #"attack"  : cmd_attack,
     "dump"    : cmd_dump,
     "roll"    : cmd_roll,
 }
 
 def process_command(expr):
-    if (expr == "q" or expr == "quit"):
+    if (expr == ""):
+        return
+    elif (expr == "q" or expr == "quit"):
         exit()
-    elif (expr != ""):
+    else:
         argv = re.split('[\s]+', expr)
-        try:
-            command = commands[argv[0]]
-            command(expr)
-        except KeyError:
-            cmd_roll(expr)
+        if (argv[0] == "char"):
+            cmd_character(argv[1])
+        elif (argv[0] == "init"):
+            cmd_init()
+        elif (argv[0] == "attack"):
+            if (len(argv) >= 5):
+                cmd_attack(argv[1], argv[2], argv[3], argv[4])
+            elif (len(argv) >= 4):
+                cmd_attack(argv[1], argv[2], argv[3])
+            else:
+                cmd_attack(argv[1], argv[2])
+        elif (argv[0] == "dump"):
+            if (len(argv) >= 2):
+                cmd_dump(argv[1])
+            else:
+                cmd_dump()
 
     return
 
