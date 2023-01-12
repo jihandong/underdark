@@ -1,0 +1,49 @@
+{
+    "pl"    : true,
+    "name"  : "boss",
+
+    "IN"    : 3,
+    "HP"    : 7,
+    "AC"    : 10,
+
+    "str"   : -1,
+    "dex"   : -2,
+    "con"   : -1,
+    "int"   : 3,
+    "wis"   : 1,
+    "cha"   : 2,
+
+    "fort"  : 0,
+    "ref"   : -1,
+    "will"  : -1,
+
+    "attack" : {
+        "keyboard" : {
+            "attack" : -1,
+            "damage" : "1d4-1"
+        },
+        "mouse" : {
+            "attack" : -1,
+            "damage" : "1d4-1"
+        }
+    },
+
+    "acrobatics"    : 1,
+    "arcana"        : 1,
+    "athletics"     : 1,
+    "crafting"      : 1,
+    "deception"     : 1,
+    "diplomacy"     : 1,
+    "intimidation"  : 1,
+    "lore1"         : 1,
+    "lore2"         : 1,
+    "medicine"      : 1,
+    "nature"        : 1,
+    "occultism"     : 1,
+    "performance"   : 1,
+    "religion"      : 1,
+    "society"       : 1,
+    "stealth"       : 1,
+    "survival"      : 1
+}
+

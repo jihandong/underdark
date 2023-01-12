@@ -1,4 +1,7 @@
+import copy
+import json
 import math
+import os
 import random
 import re
 
@@ -44,11 +47,11 @@ def eval_roll(expr):
     if expr == "d" or expr == "D":
         val = random.randint(1, 20)
         if val == 1:
-            print("1d20 = 1, huge failure!")
+            print("| 1d20 = \033[31m1 !\033[0m")
         elif val == 20:
-            print("1d20 = 20, huge success!")
+            print("| 1d20 = \033[32m20 !\033[0m")
         else:
-            print("1d20 = %d" % val)
+            print("| 1d20 = %d" % val)
         return val
 
     # mDx
@@ -76,9 +79,9 @@ def eval_roll(expr):
                     res = res + " + " + str(roll)
 
             if nb == 1:
-                print("%s = %d" % (expr, val))
+                print("| %s = %d" % (expr, val))
             else:
-                print("%s = %d = %s" % (expr, val, res))
+                print("| %s = %d = %s" % (expr, val, res))
             return val
         else:
             print("!!! Error Expression: ", expr)
@@ -125,8 +128,9 @@ def eval_add(expr):
     return result
 
 def cmd_roll(expr):
+    print("+----------------------")
     result = eval_add(expr)
-    print(result)
+    print("| %d = %s" % (result, expr))
     return result
 
 #############################################################################
@@ -144,7 +148,7 @@ def cmd_character(expr):
     return
 
 #############################################################################
-# Common
+# Common Data
 #############################################################################
 
 checks = [
@@ -173,7 +177,7 @@ checks = [
     "religion"    ,
     "society"     ,
     "stealth"     ,
-    "survival"    
+    "survival"
 ]
 
 def match_check(name):
@@ -182,111 +186,76 @@ def match_check(name):
             return c
     return "wtf"
 
-#############################################################################
-# init: load player data
-#############################################################################
+character_path = "/home/jhd/Downloads/underdark/character"
+monster_path   = "/home/jhd/Downloads/underdark/monster"
+active_objects = {}
 
-test1 = {
-    "pl"    : True,
-    "name"  : "jhd",
-
-    "IN"    : 4,
-    "HP"    : 8,
-    "AC"    : 11,
-
-    "str"   : -1,
-    "dex"   : -1,
-    "con"   : 0,
-    "int"   : 2,
-    "wis"   : -1,
-    "cha"   : 0,
-
-    "fort"  : 0,
-    "ref"   : -1,
-    "will"  : -1,
-
-    "attack" : {
-        "keyboard" : {
-            "attack" : -1,
-            "damage" : "1d4-1"
-        },
-        "mouse" : {
-            "attack" : -1,
-            "damage" : "1d4-1"
-        }
-    },
-
-    "acrobatics"    : 1,
-    "arcana"        : 1,
-    "athletics"     : 1,
-    "crafting"      : 1,
-    "deception"     : 1,
-    "diplomacy"     : 1,
-    "intimidation"  : 1,
-    "lore1"         : 1,
-    "lore2"         : 1,
-    "medicine"      : 1,
-    "nature"        : 1,
-    "occultism"     : 1,
-    "performance"   : 1,
-    "religion"      : 1,
-    "society"       : 1,
-    "stealth"       : 1,
-    "survival"      : 1
-}
-
-test2 = {
-    "pl"    : True,
-    "name"  : "boss",
-
-    "IN"    : 3,
-    "HP"    : 7,
-    "AC"    : 10,
-
-    "str"   : -1,
-    "dex"   : -2,
-    "con"   : -1,
-    "int"   : 3,
-    "wis"   : 1,
-    "cha"   : 2,
-
-    "fort"  : 0,
-    "ref"   : -1,
-    "will"  : -1,
-
-    "attack" : {
-        "keyboard" : {
-            "attack" : -1,
-            "damage" : "1d4-1"
-        },
-        "mouse" : {
-            "attack" : -1,
-            "damage" : "1d4-1"
-        }
-    },
-
-    "acrobatics"    : 1,
-    "arcana"        : 1,
-    "athletics"     : 1,
-    "crafting"      : 1,
-    "deception"     : 1,
-    "diplomacy"     : 1,
-    "intimidation"  : 1,
-    "lore1"         : 1,
-    "lore2"         : 1,
-    "medicine"      : 1,
-    "nature"        : 1,
-    "occultism"     : 1,
-    "performance"   : 1,
-    "religion"      : 1,
-    "society"       : 1,
-    "stealth"       : 1,
-    "survival"      : 1
-}
-
-characters = { "jhd" : test1, "boss" : test2 }
-
+# init: load character profiles
 def cmd_init():
+    for root, dirs, files in os.walk(character_path):
+        for filename in files:
+            try:
+                path = os.path.join(root, filename)
+                f = open(path)
+                content = f.read()
+                object = json.loads(content)
+                object["initiative"] = 0
+                active_objects[object["name"]] = object
+            except KeyError:
+                print("!!! Error Json: %s" % filename)
+    cmd_dump()
+    return
+
+# prepare: load a monster profile
+def cmd_prepare(name, num=1):
+    for root, dirs, files in os.walk(monster_path):
+        for filename in files:
+            try:
+                if (name in filename):
+                    path = os.path.join(root, filename)
+                    f = open(path)
+                    content = f.read()
+                    object = json.loads(content)
+                    if (object["name"] in active_objects.keys()):
+                        print("!!! Error Existed: %s" % filename)
+                    else:
+                        num = int(num)
+                        if (num > 1):
+                            while (num > 0):
+                                num = num - 1
+                                obj = copy.deepcopy(object)
+                                obj["initiative"] = 0
+                                obj["name"] = obj["name"] + str(num)
+                                active_objects[obj["name"]] = obj
+                        else:
+                            object["initiative"] = 0
+                            active_objects[object["name"]] = object
+            except:
+                print("!!! Error Json: %s" % filename)
+    cmd_dump()
+    return
+
+# start: roll initiative for active objects and sort
+def cmd_start():
+    for obj in active_objects.values():
+        try:
+            obj["initiative"] = cmd_roll("1d20+" + str(obj["IN"]));
+        except KeyError:
+            print("!!! Error Key")
+    cmd_dump()
+    return
+
+# stop: remove all monsters
+def cmd_stop():
+    names = list(active_objects.keys())
+    for key in names:
+        try:
+            active_objects[key]['initiative'] = 0
+            if (not active_objects[key]["pl"]):
+                active_objects.pop(key)
+        except KeyError:
+            print("!!! Error Key")
+    cmd_dump()
     return
 
 #############################################################################
@@ -296,7 +265,7 @@ def cmd_init():
 def cmd_set(name, key, value):
     try:
         print("set %s's %s to %s" % (name, key, value))
-        characters[name][key] = int(value)
+        active_objects[name][key] = int(value)
     except:
         print("!!! Error Target: %s %s %s" % (name, key, value))
     return
@@ -305,12 +274,12 @@ def cmd_set(name, key, value):
 # Adjust
 #############################################################################
 
-def cmd_adjust(name, key, value):
+def cmd_add(name, key, value):
     try:
-        old_value = int(characters[name][key])
+        old_value = int(active_objects[name][key])
         new_value = old_value + int(value)
         print("adjust %s's %s from %d to %d" % (name, key, old_value, new_value))
-        characters[name][key] = new_value
+        active_objects[name][key] = new_value
     except:
         print("!!! Error Target: %s %s %s" % (name, key, value))
     return
@@ -319,28 +288,11 @@ def cmd_adjust(name, key, value):
 # Check
 #############################################################################
 
-def cmd_check(name1, skill1, bonus1="", name2="", skill2="", bonus2=""):
+def cmd_check(name, skill, bonus=""):
     try:
-        print("------------------------------")
-        check1 = match_check(skill1)
-        print("%s does %s check ..." % (name1, check1))
-        result1 = cmd_roll("1d20+" + bonus1 + "+" + str(characters[name1][check1]))
-        print("------------------------------")
-        if (name2):
-            check2 = ""
-            if (skill2):
-                check2 = check1
-            else:
-                check2 = match_check(skill2)
-            print("... while %s does %s check ..." % (name2, check2))
-            result2 = cmd_roll("1d20+" + bonus2 + "+" + str(characters[name2][check2]))
-            if (result1 < result2):
-                print("... and %s wins" % name2)
-            elif (result1 > result2):
-                print("... and %s wins" % name1)
-            else:
-                print("... and tie")
-            print("------------------------------")
+        skill = match_check(skill)
+        print("%s check %s ..." % (name, skill))
+        result = cmd_roll("D+" + bonus + "+" + str(active_objects[name][skill]))
     except KeyError:
         print("!!! Error Target")
     return
@@ -351,49 +303,73 @@ def cmd_check(name1, skill1, bonus1="", name2="", skill2="", bonus2=""):
 
 def cmd_attack(name1, name2, weapon, abonus="", dbonus="", acbonus=""):
     try:
-        print("------------------------------")
-        print("%s attack with %s%d ..." % (name1, weapon,\
-              characters[name1]["attack"][weapon]["attack"]))
-        attack = cmd_roll("1d20+" + abonus + "+" +\
-                          str(characters[name1]["attack"][weapon]["attack"]))
-        print("------------------------------")
-        ac = cmd_roll(str(characters[name1]["AC"]) + acbonus)
-        print("... and %s has AC=%d ..." % (name2, ac))
-        print("------------------------------")
+        print("+----------------------")
+        print("| ATK: %s use %s%d" % (name1, weapon,\
+              active_objects[name1]["attack"][weapon]["attack"]))
+        attack = cmd_roll("D+" + abonus + "+" +\
+                          str(active_objects[name1]["attack"][weapon]["attack"]))
+        ac = active_objects[name1]["AC"]
+        if (acbonus):
+            print("+----------------------")
+            print("| AC: %s has %s bonus" % (name2, acbonus))
+            ac = cmd_roll(str(ac) + "+" + acbonus)
+        print("+----------------------")
         if (attack >= ac):
-            print("... cause damage")
-            damage = cmd_roll(characters[name1]["attack"][weapon]["damage"]\
+            if (dbonus):
+                print("| HIT: %s has %s bonus" % (name1, dbonus))
+            else:
+                print("| HIT")
+            damage = cmd_roll(active_objects[name1]["attack"][weapon]["damage"]\
                      + "+" + dbonus)
+            cmd_dump([name2])
         else:
-            print("... miss")
-        print("------------------------------")
+            print("| \033[33mMISS\033[0m")
     except KeyError:
         print("!!! Error Target: %s %s %s" % (name1, name2, weapon))
 
     return
 
-#############################################################################
-# Dump
-#############################################################################
-
-def cmd_dump(name=""):
-    print("---------+----------+----------+-------------------+-----------------------")
-    print("    name | IN HP AC | ft rf wl | st dx cn it ws ch | weapon")
-    print("---------+----------+----------+-------------------+-----------------------")
-    for c in characters.values():
+# dump: show active objects
+def cmd_dump(names=[]):
+    print("+--+----------+----------+----------+-------------------+-----------------------")
+    print("|  |     name | IN HP AC | ft rf wl | st dx cn it ws ch | weapon")
+    print("+--+----------+----------+----------+-------------------+-----------------------")
+    sorted_objects = sorted(active_objects.values(), key=lambda x : -x["initiative"])
+    for c in sorted_objects:
         try:
             weapons = ""
             for w in c["attack"].keys():
                 weapons += w
                 weapons += " "
-            print("%8s | %2d %2d %2d | %2d %2d %2d | %2d %2d %2d %2d %2d %2d | %s"
-                  % (c["name"], c["IN"], c["HP"], c["AC"],
-                     c["fort"], c["ref"], c["will"],
-                     c["str"], c["dex"], c["con"],
-                     c["int"], c["wis"], c["cha"], weapons))
+            if (c["name"] in names):
+                if (c["pl"]):
+                    print("|%2d| \033[34m%8s\033[0m | %2d %2d %2d | %2d %2d %2d | %2d %2d %2d %2d %2d %2d | %s"
+                            % (c["initiative"], c["name"] , c["IN"], c["HP"], c["AC"],
+                            c["fort"], c["ref"], c["will"],
+                            c["str"], c["dex"], c["con"],
+                            c["int"], c["wis"], c["cha"], weapons))
+                else:
+                    print("|%2d| \033[34m%-8s\033[0m | %2d %2d %2d | %2d %2d %2d | %2d %2d %2d %2d %2d %2d | %s"
+                            % (c["initiative"], c["name"] , c["IN"], c["HP"], c["AC"],
+                            c["fort"], c["ref"], c["will"],
+                            c["str"], c["dex"], c["con"],
+                            c["int"], c["wis"], c["cha"], weapons))
+            else:
+                if (c["pl"]):
+                    print("|%2d| %8s | %2d %2d %2d | %2d %2d %2d | %2d %2d %2d %2d %2d %2d | %s"
+                            % (c["initiative"], c["name"], c["IN"], c["HP"], c["AC"],
+                            c["fort"], c["ref"], c["will"],
+                            c["str"], c["dex"], c["con"],
+                            c["int"], c["wis"], c["cha"], weapons))
+                else:
+                    print("|%2d| %-8s | %2d %2d %2d | %2d %2d %2d | %2d %2d %2d %2d %2d %2d | %s"
+                            % (c["initiative"], c["name"], c["IN"], c["HP"], c["AC"],
+                            c["fort"], c["ref"], c["will"],
+                            c["str"], c["dex"], c["con"],
+                            c["int"], c["wis"], c["cha"], weapons))
         except KeyError:
             print("!!! Error Json")
-    print("---------+----------+----------+-------------------+-----------------------")
+    print("+--+----------+----------+----------+-------------------+-----------------------")
     return
 
 #############################################################################
@@ -420,16 +396,16 @@ def process_command(expr):
     elif (expr == "q" or expr == "quit"):
         exit()
     elif (expr == "h" or expr == "help"):
-        #print("prepare  : add a monster")
-        #print("start    : roll initiative")
-        #print("stop     : clear monsters")
+        #print("init     : init characters")
+        print("prepare  : add a monster")
+        print("start    : roll initiative")
+        print("stop     : remove monsters")
         print("set      : change some values")
         print("           set name key value")
-        print("adjust   : adjust some values")
-        print("           adjust name key value")
+        print("add      : add adjust values")
+        print("           add name key value")
         print("check    : roll ability/save/skill check")
-        print("           check name skill [bonus] [enemy] [skill] [bonus]")
-        print("           check name skill")
+        print("           check name skill [bonus]")
         print("attack   : rool attack and damage")
         print("           attack name target weapon [attack] [damage] [bonus]")
         print("           attack name target weapon")
@@ -440,33 +416,36 @@ def process_command(expr):
             cmd_character(argv[1])
         elif (argv[0] == "init"):
             cmd_init()
+        elif (argv[0] == "prepare"):
+            if (len(argv) >= 3):
+                cmd_prepare(argv[1], argv[2])
+            elif (len(argv) >= 2):
+                cmd_prepare(argv[1])
+            else:
+                print("!!! Error Args")
+        elif (argv[0] == "start"):
+            cmd_start()
+        elif (argv[0] == "stop"):
+            cmd_stop()
         elif (argv[0] == "set"):
             if (len(argv) >= 4):
                 cmd_set(argv[1], argv[2], argv[3])
             else:
                 print("!!! Error Args")
-        elif (argv[0] == "adjust"):
+        elif (argv[0] == "add"):
             if (len(argv) >= 4):
-                cmd_adjust(argv[1], argv[2], argv[3])
+                cmd_add(argv[1], argv[2], argv[3])
             else:
                 print("!!! Error Args")
-        elif (argv[0] == "check"):
-            if (len(argv) >= 7):
-                # check player skill [bonus] [monster] [skill] [bonus]
-                cmd_check(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6])
-            elif (len(argv) >= 6):
-                cmd_check(argv[1], argv[2], argv[3], argv[4], argv[5])
-            elif (len(argv) >= 5):
-                cmd_check(argv[1], argv[2], argv[3], argv[4])
-            elif (len(argv) >= 4):
+        elif (argv[0] == "check"): # check player skill [bonus]
+            if (len(argv) >= 4):
                 cmd_check(argv[1], argv[2], argv[3])
             elif (len(argv) >= 3):
                 cmd_check(argv[1], argv[2])
             else:
                 print("!!! Error Args")
-        elif (argv[0] == "attack"):
+        elif (argv[0] == "attack"): # attack player monster weapon [atk_bonus] [dmg_bonus] [ac_bonus]
             if (len(argv) >= 7):
-                # attack player monster weapon [atk_bonus] [dmg_bonus] [ac_bonus]
                 cmd_attack(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6])
             elif (len(argv) >= 6):
                 cmd_attack(argv[1], argv[2], argv[3], argv[4], argv[5])
@@ -478,7 +457,7 @@ def process_command(expr):
                 print("!!! Error Args")
         elif (argv[0] == "dump"):
             if (len(argv) >= 2):
-                cmd_dump(argv[1])
+                cmd_dump(argv[1:])
             else:
                 cmd_dump()
         elif (argv[0] == "dist"):
