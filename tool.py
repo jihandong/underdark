@@ -1,3 +1,4 @@
+import math
 import random
 import re
 
@@ -143,6 +144,45 @@ def cmd_character(expr):
     return
 
 #############################################################################
+# Common
+#############################################################################
+
+checks = [
+    "str",
+    "dex",
+    "con",
+    "int",
+    "wis",
+    "cha",
+    "fort",
+    "ref" ,
+    "will",
+    "acrobatics"  ,
+    "arcana"      ,
+    "athletics"   ,
+    "crafting"    ,
+    "deception"   ,
+    "diplomacy"   ,
+    "intimidation",
+    "lore1"       ,
+    "lore2"       ,
+    "medicine"    ,
+    "nature"      ,
+    "occultism"   ,
+    "performance" ,
+    "religion"    ,
+    "society"     ,
+    "stealth"     ,
+    "survival"    
+]
+
+def match_check(name):
+    for c in checks:
+        if name in c:
+            return c
+    return "wtf"
+
+#############################################################################
 # init: load player data
 #############################################################################
 
@@ -154,12 +194,12 @@ test1 = {
     "HP"    : 8,
     "AC"    : 11,
 
-    "str"   : 8,
-    "dex"   : 9,
-    "con"   : 10,
-    "int"   : 14,
-    "wis"   : 8,
-    "cha"   : 10,
+    "str"   : -1,
+    "dex"   : -1,
+    "con"   : 0,
+    "int"   : 2,
+    "wis"   : -1,
+    "cha"   : 0,
 
     "fort"  : 0,
     "ref"   : -1,
@@ -176,24 +216,39 @@ test1 = {
         }
     },
 
-    "acrobatics"    : 3,
-    "arcana"        : 4
+    "acrobatics"    : 1,
+    "arcana"        : 1,
+    "athletics"     : 1,
+    "crafting"      : 1,
+    "deception"     : 1,
+    "diplomacy"     : 1,
+    "intimidation"  : 1,
+    "lore1"         : 1,
+    "lore2"         : 1,
+    "medicine"      : 1,
+    "nature"        : 1,
+    "occultism"     : 1,
+    "performance"   : 1,
+    "religion"      : 1,
+    "society"       : 1,
+    "stealth"       : 1,
+    "survival"      : 1
 }
 
 test2 = {
     "pl"    : True,
     "name"  : "boss",
 
-    "IN"    : 4,
-    "HP"    : 8,
-    "AC"    : 11,
+    "IN"    : 3,
+    "HP"    : 7,
+    "AC"    : 10,
 
-    "str"   : 8,
-    "dex"   : 9,
-    "con"   : 10,
-    "int"   : 14,
-    "wis"   : 8,
-    "cha"   : 10,
+    "str"   : -1,
+    "dex"   : -2,
+    "con"   : -1,
+    "int"   : 3,
+    "wis"   : 1,
+    "cha"   : 2,
 
     "fort"  : 0,
     "ref"   : -1,
@@ -210,30 +265,111 @@ test2 = {
         }
     },
 
-    "acrobatics"    : 3,
-    "arcana"        : 4
+    "acrobatics"    : 1,
+    "arcana"        : 1,
+    "athletics"     : 1,
+    "crafting"      : 1,
+    "deception"     : 1,
+    "diplomacy"     : 1,
+    "intimidation"  : 1,
+    "lore1"         : 1,
+    "lore2"         : 1,
+    "medicine"      : 1,
+    "nature"        : 1,
+    "occultism"     : 1,
+    "performance"   : 1,
+    "religion"      : 1,
+    "society"       : 1,
+    "stealth"       : 1,
+    "survival"      : 1
 }
 
-characters = [ test1, test2 ]
+characters = { "jhd" : test1, "boss" : test2 }
 
 def cmd_init():
+    return
+
+#############################################################################
+# Set
+#############################################################################
+
+def cmd_set(name, key, value):
+    try:
+        print("set %s's %s to %s" % (name, key, value))
+        characters[name][key] = int(value)
+    except:
+        print("!!! Error Target: %s %s %s" % (name, key, value))
+    return
+
+#############################################################################
+# Adjust
+#############################################################################
+
+def cmd_adjust(name, key, value):
+    try:
+        old_value = int(characters[name][key])
+        new_value = old_value + int(value)
+        print("adjust %s's %s from %d to %d" % (name, key, old_value, new_value))
+        characters[name][key] = new_value
+    except:
+        print("!!! Error Target: %s %s %s" % (name, key, value))
+    return
+
+#############################################################################
+# Check
+#############################################################################
+
+def cmd_check(name1, skill1, bonus1="", name2="", skill2="", bonus2=""):
+    try:
+        print("------------------------------")
+        check1 = match_check(skill1)
+        print("%s does %s check ..." % (name1, check1))
+        result1 = cmd_roll("1d20+" + bonus1 + "+" + str(characters[name1][check1]))
+        print("------------------------------")
+        if (name2):
+            check2 = ""
+            if (skill2):
+                check2 = check1
+            else:
+                check2 = match_check(skill2)
+            print("... while %s does %s check ..." % (name2, check2))
+            result2 = cmd_roll("1d20+" + bonus2 + "+" + str(characters[name2][check2]))
+            if (result1 < result2):
+                print("... and %s wins" % name2)
+            elif (result1 > result2):
+                print("... and %s wins" % name1)
+            else:
+                print("... and tie")
+            print("------------------------------")
+    except KeyError:
+        print("!!! Error Target")
     return
 
 #############################################################################
 # Attack
 #############################################################################
 
-def cmd_attack(name, weapon, abonus = "", dbonus = ""):
-    for c in characters:
-        if c["name"] == name:
-            try:
-                print("Roll attack check for %s with %s" % (name, weapon))
-                result1 = cmd_roll("1d20+" + abonus) + c["attack"][weapon]["attack"]
-                print("Roll damage check for %s with %s" % (name, weapon))
-                result2 = cmd_roll(c["attack"][weapon]["damage"] + "+" + dbonus)
-            except:
-                print("!!! Error Character: %s %s" % (name. value))
-            break
+def cmd_attack(name1, name2, weapon, abonus="", dbonus="", acbonus=""):
+    try:
+        print("------------------------------")
+        print("%s attack with %s%d ..." % (name1, weapon,\
+              characters[name1]["attack"][weapon]["attack"]))
+        attack = cmd_roll("1d20+" + abonus + "+" +\
+                          str(characters[name1]["attack"][weapon]["attack"]))
+        print("------------------------------")
+        ac = cmd_roll(str(characters[name1]["AC"]) + acbonus)
+        print("... and %s has AC=%d ..." % (name2, ac))
+        print("------------------------------")
+        if (attack >= ac):
+            print("... cause damage")
+            damage = cmd_roll(characters[name1]["attack"][weapon]["damage"]\
+                     + "+" + dbonus)
+        else:
+            print("... miss")
+        print("------------------------------")
+    except KeyError:
+        print("!!! Error Target: %s %s %s" % (name1, name2, weapon))
+
     return
 
 #############################################################################
@@ -241,71 +377,127 @@ def cmd_attack(name, weapon, abonus = "", dbonus = ""):
 #############################################################################
 
 def cmd_dump(name=""):
-    print("---------+----------+---------------+-------------------------")
-    print("    mame | IN HP AC | fort ref will | str dex con int wis cha")
-    print("---------+----------+---------------+-------------------------")
-    for c in characters:
+    print("---------+----------+----------+-------------------+-----------------------")
+    print("    name | IN HP AC | ft rf wl | st dx cn it ws ch | weapon")
+    print("---------+----------+----------+-------------------+-----------------------")
+    for c in characters.values():
         try:
-            print("%8s | %2d %2d %2d | %4d %3d %4d | %3d %3d %3d %3d %3d %3d"
+            weapons = ""
+            for w in c["attack"].keys():
+                weapons += w
+                weapons += " "
+            print("%8s | %2d %2d %2d | %2d %2d %2d | %2d %2d %2d %2d %2d %2d | %s"
                   % (c["name"], c["IN"], c["HP"], c["AC"],
                      c["fort"], c["ref"], c["will"],
                      c["str"], c["dex"], c["con"],
-                     c["int"], c["wis"], c["cha"]))
+                     c["int"], c["wis"], c["cha"], weapons))
         except KeyError:
-            print("!!! Error")
-    print("---------+----------+---------------+-------------------------")
+            print("!!! Error Json")
+    print("---------+----------+----------+-------------------+-----------------------")
     return
+
+#############################################################################
+# Dist
+#############################################################################
+
+def cmd_dist(a, b):
+    try:
+        x = int(a)
+        y = int(b)
+        print("distance %d, %d is %f" % (x, y, math.sqrt(x * x + y * y)))
+    except:
+        print("!!! Error A B")
+    return
+
 
 #############################################################################
 # process_command
 #############################################################################
-
-commands = {
-    "char"    : cmd_character,
-    "init"    : cmd_init,
-    #"prepare" : cmd_prepare,
-    #"start"   : cmd_start,
-    #"stop"    : cmd_stop,
-    #"set"     : cmd_set,
-    #"add"     : cmd_add,
-    #"check"   : cmd_check,
-    #"attack"  : cmd_attack,
-    "dump"    : cmd_dump,
-    "roll"    : cmd_roll,
-}
 
 def process_command(expr):
     if (expr == ""):
         return
     elif (expr == "q" or expr == "quit"):
         exit()
+    elif (expr == "h" or expr == "help"):
+        #print("prepare  : add a monster")
+        #print("start    : roll initiative")
+        #print("stop     : clear monsters")
+        print("set      : change some values")
+        print("           set name key value")
+        print("adjust   : adjust some values")
+        print("           adjust name key value")
+        print("check    : roll ability/save/skill check")
+        print("           check name skill [bonus] [enemy] [skill] [bonus]")
+        print("           check name skill")
+        print("attack   : rool attack and damage")
+        print("           attack name target weapon [attack] [damage] [bonus]")
+        print("           attack name target weapon")
+        return
     else:
         argv = re.split('[\s]+', expr)
         if (argv[0] == "char"):
             cmd_character(argv[1])
         elif (argv[0] == "init"):
             cmd_init()
+        elif (argv[0] == "set"):
+            if (len(argv) >= 4):
+                cmd_set(argv[1], argv[2], argv[3])
+            else:
+                print("!!! Error Args")
+        elif (argv[0] == "adjust"):
+            if (len(argv) >= 4):
+                cmd_adjust(argv[1], argv[2], argv[3])
+            else:
+                print("!!! Error Args")
+        elif (argv[0] == "check"):
+            if (len(argv) >= 7):
+                # check player skill [bonus] [monster] [skill] [bonus]
+                cmd_check(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6])
+            elif (len(argv) >= 6):
+                cmd_check(argv[1], argv[2], argv[3], argv[4], argv[5])
+            elif (len(argv) >= 5):
+                cmd_check(argv[1], argv[2], argv[3], argv[4])
+            elif (len(argv) >= 4):
+                cmd_check(argv[1], argv[2], argv[3])
+            elif (len(argv) >= 3):
+                cmd_check(argv[1], argv[2])
+            else:
+                print("!!! Error Args")
         elif (argv[0] == "attack"):
-            if (len(argv) >= 5):
+            if (len(argv) >= 7):
+                # attack player monster weapon [atk_bonus] [dmg_bonus] [ac_bonus]
+                cmd_attack(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6])
+            elif (len(argv) >= 6):
+                cmd_attack(argv[1], argv[2], argv[3], argv[4], argv[5])
+            elif (len(argv) >= 5):
                 cmd_attack(argv[1], argv[2], argv[3], argv[4])
             elif (len(argv) >= 4):
                 cmd_attack(argv[1], argv[2], argv[3])
             else:
-                cmd_attack(argv[1], argv[2])
+                print("!!! Error Args")
         elif (argv[0] == "dump"):
             if (len(argv) >= 2):
                 cmd_dump(argv[1])
             else:
                 cmd_dump()
+        elif (argv[0] == "dist"):
+            if (len(argv) >= 3):
+                cmd_dist(argv[1], argv[2])
+            else:
+                print("!!! Error Args")
+        else:
+            cmd_roll(expr)
 
+    print("")
     return
 
 #############################################################################
 # mainloop
 #############################################################################
 
+cmd_init()
 while True:
     expr = input("trpg> ")
     expr = re.split('[\s]*\#', expr)
     process_command(expr[0])
-
